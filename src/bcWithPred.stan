@@ -40,9 +40,9 @@ parameters {
   row_vector<lower=0, upper=1>[q] tf; 
   row_vector<lower=0, upper=1>[p+q] rho_eta; 
   row_vector<lower=0, upper=1>[p] rho_delta; 
-  real<lower=0> lambda_eta; 
-  real<lower=0> lambda_delta;
-  real<lower=0> lambda_e; 
+  real<lower=1e-6> lambda_eta; 
+  real<lower=1e-6> lambda_delta;
+  real<lower=1e-6> lambda_e; 
   vector[n_pred] y_pred; 
 }
 
@@ -125,6 +125,9 @@ model {
   lambda_eta ~ gamma(10, 10); // gamma (shape, rate)
   lambda_delta ~ gamma(10, 0.3); 
   lambda_e ~ gamma(10, 0.03); 
+  
+  // make numerically stable
+  sigma_z += diag_matrix(rep_vector(1e-8, N));
 
   L = cholesky_decompose(sigma_z); // cholesky decomposition 
   z ~ multi_normal_cholesky(mu, L);
