@@ -103,3 +103,14 @@ venv.bak/
 # mypy
 .mypy_cache/
 .DS_Store
+.Rproj.user
+
+# compiled cmdstan models
+src/bc*
+!*.stan
+
+# R
+.Rhistory
+.Rproj.user
+*.Rproj
+src/.Rhistory
