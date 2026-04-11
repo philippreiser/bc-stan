@@ -106,8 +106,9 @@ venv.bak/
 .Rproj.user
 
 # compiled cmdstan models
-src/bc*
+src/*
 !*.stan
+!*.R
 
 # R
 .Rhistory
