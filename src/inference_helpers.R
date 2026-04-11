@@ -4,45 +4,34 @@ library(future.apply)
 library(here)
 
 get_point_estimates_gp <- function(fit) {
-  draws_df <- posterior::as_draws_df(fit$draws())
+  draws_df <- as_draws_df(fit$draws())
   
-  point_est <- list(
-    rho_eta    = apply(
-      as.matrix(draws_df[, grep("^rho_eta\\[", names(draws_df)), drop = FALSE]),
-      2, median
-    ),
-    lambda_eta = median(draws_df$lambda_eta)
+  f_sim_cols <- grep("^f_sim\\[", names(draws_df))
+  if (length(f_sim_cols) == 0)
+    stop("f_sim not found in draws — ensure f_sim is a transformed parameter in Step 1")
+  
+  list(
+    rho   = apply(as.matrix(draws_df[, grep("^rho\\[", names(draws_df)), drop = FALSE]), 2, median),
+    alpha = median(draws_df$alpha),
+    f_sim = apply(as.matrix(draws_df[, f_sim_cols, drop = FALSE]), 2, median)
   )
-  
-  # Extract f_eta[1:m] — the latent GP at simulator points
-  # f_eta is a transformed parameter so it is available in the draws
-  f_eta_cols <- grep("^f_eta\\[", names(draws_df))
-  if (length(f_eta_cols) == 0)
-    stop("f_eta not found in draws — ensure save_latent_dynamics = TRUE or f_eta is a transformed parameter")
-  
-  point_est$f_sim <- apply(
-    as.matrix(draws_df[, f_eta_cols, drop = FALSE]),
-    2, median
-  )
-  
-  point_est
 }
 
 make_gp_point_data <- function(stan_data, point_est) {
   list(
-    n          = stan_data$n,
-    m          = stan_data$m,
-    n_pred     = stan_data$n_pred,
-    p          = stan_data$p,
-    q          = stan_data$q,
-    y          = stan_data$y,
-    xf         = stan_data$xf,
-    xc         = stan_data$xc,
-    tc         = stan_data$tc,
-    x_pred     = stan_data$x_pred,
-    rho_eta    = as.vector(point_est$rho_eta),
-    lambda_eta = point_est$lambda_eta,
-    f_sim      = as.vector(point_est$f_sim)   # replaces eta_std
+    N_sim  = stan_data$N_sim,
+    N_real = stan_data$N_real,
+    N_pred = stan_data$N_pred,
+    p      = stan_data$p,
+    q      = stan_data$q,
+    y_real = stan_data$y_real,
+    x_real = stan_data$x_real,
+    x_sim  = stan_data$x_sim,
+    w_sim  = stan_data$w_sim,
+    x_pred = stan_data$x_pred,
+    rho    = as.vector(point_est$rho),
+    alpha  = point_est$alpha,
+    f_sim  = as.vector(point_est$f_sim)
   )
 }
 
