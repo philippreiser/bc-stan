@@ -7,42 +7,42 @@ get_point_estimates_gp <- function(fit) {
   draws_df <- posterior::as_draws_df(fit$draws())
   
   point_est <- list(
-    rho_eta = apply(
+    rho_eta    = apply(
       as.matrix(draws_df[, grep("^rho_eta\\[", names(draws_df)), drop = FALSE]),
       2, median
     ),
-    lambda_eta = median(draws_df$lambda_eta),
-    eta_std = apply(
-      as.matrix(draws_df[, grep("^eta_std\\[", names(draws_df)), drop = FALSE]),
-      2, median
-    )
+    lambda_eta = median(draws_df$lambda_eta)
   )
   
-  if (length(grep("^tf\\[", names(draws_df))) > 0) {
-    point_est$tf_init <- apply(
-      as.matrix(draws_df[, grep("^tf\\[", names(draws_df)), drop = FALSE]),
-      2, median
-    )
-  }
+  # Extract f_eta[1:m] — the latent GP at simulator points
+  # f_eta is a transformed parameter so it is available in the draws
+  f_eta_cols <- grep("^f_eta\\[", names(draws_df))
+  if (length(f_eta_cols) == 0)
+    stop("f_eta not found in draws — ensure save_latent_dynamics = TRUE or f_eta is a transformed parameter")
+  
+  point_est$f_sim <- apply(
+    as.matrix(draws_df[, f_eta_cols, drop = FALSE]),
+    2, median
+  )
   
   point_est
 }
 
 make_gp_point_data <- function(stan_data, point_est) {
   list(
-    n = stan_data$n,
-    m = stan_data$m,
-    n_pred = stan_data$n_pred,
-    p = stan_data$p,
-    q = stan_data$q,
-    y = stan_data$y,
-    xf = stan_data$xf,
-    xc = stan_data$xc,
-    tc = stan_data$tc,
-    x_pred = stan_data$x_pred,
-    rho_eta = as.vector(point_est$rho_eta),
+    n          = stan_data$n,
+    m          = stan_data$m,
+    n_pred     = stan_data$n_pred,
+    p          = stan_data$p,
+    q          = stan_data$q,
+    y          = stan_data$y,
+    xf         = stan_data$xf,
+    xc         = stan_data$xc,
+    tc         = stan_data$tc,
+    x_pred     = stan_data$x_pred,
+    rho_eta    = as.vector(point_est$rho_eta),
     lambda_eta = point_est$lambda_eta,
-    eta_std = as.vector(point_est$eta_std)
+    f_sim      = as.vector(point_est$f_sim)   # replaces eta_std
   )
 }
 
@@ -187,12 +187,12 @@ inference_step_gp <- function(
     gp_point <- get_point_estimates_gp(surrogate_model_fit)
     stan_data_inf <- make_gp_point_data(stan_data, gp_point)
     
-    init_value <- function() {
-      list(
-        tf = gp_point$tf_init,
-        sigma = 0.1
-      )
-    }
+    # init_value <- function() {
+    #   list(
+    #     tf = gp_point$tf_init,
+    #     sigma = 0.1
+    #   )
+    # }
     
     inference_model$sample(
       data = stan_data_inf,
@@ -202,7 +202,7 @@ inference_step_gp <- function(
       iter_warmup = iter_warmup_2,
       iter_sampling = number_samples_2,
       adapt_delta = adapt_delta_2,
-      init = init_value,
+      # init = init_value,
       refresh = 0
     )
     

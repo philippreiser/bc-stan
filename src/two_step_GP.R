@@ -84,7 +84,7 @@ stan_data <- list(n=n, m=m, n_pred=n_pred, p=p, y=y, q=q, eta=eta,
                   alpha_sim=alpha_sim, alpha_real=alpha_real)
 
 # run model in cmdstanr
-mod <- cmdstan_model("GP_step_1_analytic.stan")
+mod <- cmdstan_model("GP_step_1.stan")
 fit <- mod$sample(
   data = stan_data,
   iter_warmup = 1000,
@@ -108,7 +108,7 @@ mcmc_trace(
 fit$summary()
 
 ## ----- Second Inference Step: GP Point Method ------ ##
-source("inference_helpers_analytic.R")
+source("inference_helpers.R")
 
 # extract point estimates from first-step fit
 gp_point <- get_point_estimates_gp(fit)
@@ -117,7 +117,7 @@ gp_point <- get_point_estimates_gp(fit)
 stan_data_inf <- make_gp_point_data(stan_data, gp_point)
 
 # compile second-step model
-mod_inf <- cmdstan_model("powerScalingGPinference_analytic.stan")
+mod_inf <- cmdstan_model("GP_step_2.stan")
 
 fit_inf <- mod_inf$sample(
   data = stan_data_inf,
@@ -264,7 +264,7 @@ library(posterior)
 library(tidyverse)
 
 # --- Extract predictions ---
-y_pred_array <- fit$draws("y_pred")
+y_pred_array <- fit_inf$draws("y_pred")
 y_pred_mat   <- as_draws_matrix(y_pred_array)
 
 # keep only prediction columns
