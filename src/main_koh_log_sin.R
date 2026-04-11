@@ -415,3 +415,40 @@ p_y <- plot_pp_koh(
   title = "KOH Posterior Predictive"
 )
 p_y
+
+
+# calc ELPD
+get_lpd_matrix_gp <- function(mu_pred_mat, sigma_draws, y_test) {
+  S <- nrow(mu_pred_mat)
+  N <- ncol(mu_pred_mat)
+  lpd_mat <- matrix(NA_real_, nrow = S, ncol = N)
+  
+  for (s in 1:S) {
+    lpd_mat[s, ] <- dnorm(y_test, mean = mu_pred_mat[s, ], sd = sigma_draws[s], log = TRUE)
+  }
+  
+  lpd_mat
+}
+
+calc_elpd_from_lpd_matrix <- function(lpd_mat) {
+  pointwise_lpd <- apply(lpd_mat, 2, function(x) {
+    matrixStats::logSumExp(x) - log(length(x))
+  })
+  sum(pointwise_lpd)
+}
+
+sigma_draws <- sqrt(1 / posterior::as_draws_df(fit$draws("lambda_e"))$lambda_e)
+
+mu_pred_mat <- fit$draws("mu_pred") |>
+  posterior::as_draws_matrix()
+
+mu_pred_mat <- mu_pred_mat[, grepl("^mu_pred\\[", colnames(mu_pred_mat)), drop = FALSE]
+
+# backtransform if needed
+mu_pred_mat <- mu_pred_mat * eta_sd + eta_mu
+sigma_draws <- sigma_draws * eta_sd
+
+lpd_mat <- get_lpd_matrix_gp(mu_pred_mat, sigma_draws, y_test = df_real_oos_ood$y_noisy)
+elpd <- calc_elpd_from_lpd_matrix(lpd_mat)
+elpd
+elpd_mean <- elpd / ncol(lpd_mat)
