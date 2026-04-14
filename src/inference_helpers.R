@@ -6,14 +6,16 @@ library(here)
 get_point_estimates_gp <- function(fit) {
   draws_df <- as_draws_df(fit$draws())
   
-  f_sim_cols <- grep("^f_sim\\[", names(draws_df))
-  if (length(f_sim_cols) == 0)
-    stop("f_sim not found in draws — ensure f_sim is a transformed parameter in Step 1")
+  f_cols <- grep("^f\\[", names(draws_df))
+  eta_std_cols <- grep("^eta_std\\[", names(draws_df))
+  if (length(f_cols) == 0)
+    stop("f not found in draws — ensure f is a transformed parameter in Step 1")
   
   list(
     rho   = apply(as.matrix(draws_df[, grep("^rho\\[", names(draws_df)), drop = FALSE]), 2, median),
     alpha = median(draws_df$alpha),
-    f_sim = apply(as.matrix(draws_df[, f_sim_cols, drop = FALSE]), 2, median)
+    f = apply(as.matrix(draws_df[, f_cols, drop = FALSE]), 2, median),
+    eta_std = apply(as.matrix(draws_df[, eta_std_cols, drop = FALSE]), 2, median)
   )
 }
 
@@ -31,7 +33,10 @@ make_gp_point_data <- function(stan_data, point_est) {
     x_pred = stan_data$x_pred,
     rho    = as.vector(point_est$rho),
     alpha  = point_est$alpha,
-    f_sim  = as.vector(point_est$f_sim)
+    f  = as.vector(point_est$f),
+    eta_std = as.vector(point_est$eta_std),
+    w_prior_mean = stan_data$w_prior_mean,
+    w_prior_sigma = stan_data$w_prior_sigma
   )
 }
 
