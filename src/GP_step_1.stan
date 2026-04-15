@@ -1,6 +1,5 @@
 data {
   int<lower=1> N_sim;              // number of simulator data
-  int<lower=1> N_pred;             // number of prediction points
   int<lower=1> p;                  // dimension of x
   int<lower=1> q;                  // dimension of calibration parameter w
   vector[N_sim] y_sim;             // simulator outputs
