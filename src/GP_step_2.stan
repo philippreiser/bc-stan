@@ -110,8 +110,4 @@ generated quantities {
   vector[N_pred] y_pred;
   for (j in 1:N_pred)
     y_pred[j] = normal_rng(f_pred[j], sigma);
-
-  vector[N_pred] log_lik;
-  for (i in 1:N_pred)
-    log_lik[i] = normal_lpdf(y_pred[i] | f_pred[i], sigma);
 }
